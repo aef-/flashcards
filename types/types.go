@@ -14,8 +14,8 @@ type Session = map[front]*Card
 
 type Definitions = map[front]back
 type Card struct {
-	Front    front     `yaml:"-"`
-	Back     back      `yaml:"-"`
+	Front    front     `yaml:"front"`
+	Back     back      `yaml:"back"`
 	Box      int       `yaml:"box"`
 	LastSeen time.Time `yaml:"last_seen"`
 	// Direction/magnitude of the last answer (e.g. box 5 -> 1 = -4)
@@ -28,9 +28,12 @@ func (c Card) String() string {
 
 type minutes = int
 type Config struct {
+	FilePath               string
+	SavePath               string
 	CorrectSleepMs         time.Duration
 	IncorrectSleepMs       time.Duration
 	StrategyName           string
+	StorageName            string
 	Flip                   string
 	IgnoreParenthesis      bool
 	CardsToIntroducePerDay int

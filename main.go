@@ -19,23 +19,24 @@ type Strategy interface {
 
 type UI interface {
 	Setup()
-	LoadConfig(cards t.Cards)
-	Prompt(card t.Card) bool // true - correct
+	LoadConfig() t.Config
+	Prompt(card *t.Card, config t.Config) bool // true - correct
 }
 
 type Storage interface {
-	LoadDefinitions() (definitions *t.Definitions, session *t.Session)
-	SaveSession(savePath string, fileName string, cards *t.Cards)
+	LoadDefinitions(config t.Config) (definitions *t.Definitions, session *t.Session)
+	SaveSession(cards *t.Cards, config t.Config) error
 }
 
 func main() {
-	storage := storage.Local{}
-	definitions, session := storage.LoadDefinitions()
-	cards := collateDefinitionsWithSession(definitions, session)
-
-	ui := ui.Cli{}
+	ui := getUI("cli")
 	ui.Setup()
 	config := ui.LoadConfig()
+
+	storage := getStorage(config.StorageName)
+	definitions, session := storage.LoadDefinitions(config)
+	cards := collateDefinitionsWithSession(definitions, session)
+
 	strategy := getStrategy(config.StrategyName)
 	cards = strategy.Sort(&cards, config)
 	for _, card := range cards {
@@ -44,11 +45,31 @@ func main() {
 			strategy.Correct(card)
 		} else {
 			strategy.Incorrect(card)
+			cards = append(cards, card)
 		}
 	}
+	storage.SaveSession(&cards, config)
 	for _, card := range cards {
 		fmt.Println(card)
 	}
+}
+
+func getUI(uiName string) UI {
+	switch uiName {
+	case "cli":
+		return &ui.Cli{}
+	}
+
+	return nil
+}
+
+func getStorage(storageName string) Storage {
+	switch storageName {
+	case "local":
+		return &storage.Local{}
+	}
+
+	return nil
 }
 
 func getStrategy(strategyName string) Strategy {
@@ -60,10 +81,10 @@ func getStrategy(strategyName string) Strategy {
 	return nil
 }
 
-func collateDefinitionsWithSession(definitions t.Definitions, session t.Session) t.Cards {
+func collateDefinitionsWithSession(definitions *t.Definitions, session *t.Session) t.Cards {
 	var cards t.Cards
-	for front, back := range definitions {
-		session := (session)[front]
+	for front, back := range *definitions {
+		session := (*session)[front]
 		if session != nil {
 			session.Front = front
 			session.Back = back

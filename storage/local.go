@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -15,20 +14,17 @@ import (
 
 type Local struct{}
 
-var savePath = flag.String("save-path", "/Users/207751/.gocards", "where to store ")
-
 // Collate new definitions with those already in a learning session
-func (s Local) LoadDefinitions() (t.Definitions, t.Session) {
-	flag.Parse()
-	args := flag.Args()
-	definitionsFilename := args[0]
+func (s Local) LoadDefinitions(config t.Config) (*t.Definitions, *t.Session) {
+	definitionsFilename := config.FilePath
 
 	definitionsYaml, err := ioutil.ReadFile(definitionsFilename)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	sessionPath := path.Join(*savePath, definitionsFilename)
+	sessionPath := path.Join(config.SavePath, definitionsFilename)
+	cards := make(t.Cards, 100)
 	session := make(t.Session)
 	_, err = os.Stat(sessionPath)
 	if err == nil {
@@ -37,10 +33,14 @@ func (s Local) LoadDefinitions() (t.Definitions, t.Session) {
 			log.Fatal(err)
 		}
 
-		err = yaml.Unmarshal(sessionYaml, &session)
+		err = yaml.Unmarshal(sessionYaml, &cards)
 
 		if err != nil {
 			log.Fatal(err)
+		}
+
+		for _, card := range cards {
+			session[card.Front] = card
 		}
 	}
 
@@ -51,16 +51,25 @@ func (s Local) LoadDefinitions() (t.Definitions, t.Session) {
 		log.Fatal(err)
 	}
 
-	return definitions, session
+	return &definitions, &session
 }
 
-func (s Local) saveSession(savePath string, fileName string, cards *t.Cards) {
+func (s Local) SaveSession(cards *t.Cards, config t.Config) error {
 	d, err := yaml.Marshal(*cards)
 	if err != nil {
 		log.Fatalf("error: %v", err)
 	}
 
-	fmt.Printf("Saving results to: %s\n", path.Join(savePath, fileName))
-	_ = os.Mkdir(savePath, os.ModePerm)
-	ioutil.WriteFile(path.Join(savePath, fileName), d, 0644)
+	_, err = os.Stat(config.SavePath)
+	if err != nil {
+		err = os.Mkdir(config.SavePath, os.ModePerm)
+	}
+
+	savePath := path.Join(config.SavePath, config.FilePath)
+	fmt.Printf("Saving results to: %s\n", savePath)
+	if err != nil {
+		log.Fatalf("error: %v", err)
+	}
+
+	return ioutil.WriteFile(savePath, d, 0644)
 }

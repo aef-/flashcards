@@ -24,8 +24,9 @@ func (l *Leitner) Incorrect(card *t.Card) {
 }
 
 func (l *Leitner) Sort(cards *t.Cards, config t.Config) t.Cards {
-	newCards := make(t.Cards, config.CardsToIntroducePerDay)
-	reviewCards := make(t.Cards, config.CardsToReviewPerDay)
+	newCards := make(t.Cards, 0, config.CardsToIntroducePerDay)
+	reviewCards := make(t.Cards, 0, config.CardsToReviewPerDay)
+	now := time.Now()
 
 	for _, card := range *cards {
 		if len(newCards) == config.CardsToIntroducePerDay && len(reviewCards) > config.CardsToReviewPerDay {
@@ -36,7 +37,9 @@ func (l *Leitner) Sort(cards *t.Cards, config t.Config) t.Cards {
 			newCards = append(newCards, card)
 			continue
 		}
-		if card.Box > 0 && len(reviewCards) < config.CardsToReviewPerDay {
+		if card.Box > 0 &&
+			len(reviewCards) < config.CardsToReviewPerDay &&
+			card.LastSeen.Add(time.Duration(config.Steps[card.Box])).Before(now) {
 			reviewCards = append(reviewCards, card)
 			continue
 		}
