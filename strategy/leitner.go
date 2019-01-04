@@ -1,10 +1,12 @@
 package strategy
 
 import (
-	"time"
-
 	t "github.com/aef-/flashcards/types"
-	"github.com/aef-/flashcards/utils"
+	"time"
+)
+
+var (
+	timeNow = time.Now
 )
 
 type Leitner struct{}
@@ -14,19 +16,22 @@ func (l *Leitner) Name() string {
 }
 
 func (l *Leitner) Correct(card *t.Card) {
-	card.LastSeen = time.Now()
+	card.LastSeen = timeNow()
 	card.Box = card.Box + 1
+	card.Velocity = 1
 }
 
 func (l *Leitner) Incorrect(card *t.Card) {
-	card.LastSeen = time.Now()
+	card.LastSeen = timeNow()
+	card.Velocity = 1 - card.Box
 	card.Box = 1
+
 }
 
 func (l *Leitner) Sort(cards *t.Cards, config t.Config) t.Cards {
 	newCards := make(t.Cards, 0, config.CardsToIntroducePerDay)
 	reviewCards := make(t.Cards, 0, config.CardsToReviewPerDay)
-	now := time.Now()
+	now := timeNow()
 
 	for _, card := range *cards {
 		if len(newCards) == config.CardsToIntroducePerDay && len(reviewCards) > config.CardsToReviewPerDay {
@@ -39,13 +44,13 @@ func (l *Leitner) Sort(cards *t.Cards, config t.Config) t.Cards {
 		}
 		if card.Box > 0 &&
 			len(reviewCards) < config.CardsToReviewPerDay &&
-			card.LastSeen.Add(time.Duration(config.Steps[card.Box])).Before(now) {
+			now.After(card.LastSeen.Add(time.Duration(config.Steps[card.Box]))) {
 			reviewCards = append(reviewCards, card)
 			continue
 		}
 	}
 
 	studyCards := append(newCards, reviewCards...)
-	utils.ShuffleCards(studyCards)
+	// utils.ShuffleCards(studyCards)
 	return studyCards
 }

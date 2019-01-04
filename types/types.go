@@ -23,7 +23,7 @@ type Card struct {
 }
 
 func (c Card) String() string {
-	return fmt.Sprintf("Front: %s\nBack: %s\nBox: %d\nLast Seen: %d", c.Front, c.Back, c.Box, c.LastSeen.Format(time.UnixDate))
+	return fmt.Sprintf("Front: %s\nBack: %s\nBox: %d\nLast Seen: %s\nVelocity: %d", c.Front, c.Back, c.Box, c.LastSeen.Format(time.UnixDate), c.Velocity)
 }
 
 type minutes = int
